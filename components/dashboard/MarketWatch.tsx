@@ -28,8 +28,8 @@ export function MarketWatch({ items }: MarketWatchProps) {
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Daily Change</span>
           </div>
           <div className="space-y-3">
-            {topGainers.map((item) => (
-              <div key={`gainer-${item.ticker}`} className="flex items-center justify-between p-2 rounded-xl hover:bg-emerald-500/[0.03] transition-colors group">
+            {topGainers.map((item, index) => (
+              <div key={`gainer-${item.ticker}-${index}`} className="flex items-center justify-between p-2 rounded-xl hover:bg-emerald-500/[0.03] transition-colors group">
                 <div className="flex flex-col">
                   <span className="text-xs font-black text-foreground uppercase italic">{item.ticker}</span>
                   <span className="text-[9px] text-muted-foreground truncate max-w-[120px]">{item.name}</span>
@@ -60,8 +60,8 @@ export function MarketWatch({ items }: MarketWatchProps) {
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Daily Change</span>
           </div>
           <div className="space-y-3">
-            {topLosers.map((item) => (
-              <div key={`loser-${item.ticker}`} className="flex items-center justify-between p-2 rounded-xl hover:bg-rose-500/[0.03] transition-colors group">
+            {topLosers.map((item, index) => (
+              <div key={`loser-${item.ticker}-${index}`} className="flex items-center justify-between p-2 rounded-xl hover:bg-rose-500/[0.03] transition-colors group">
                 <div className="flex flex-col">
                   <span className="text-xs font-black text-foreground uppercase italic">{item.ticker}</span>
                   <span className="text-[9px] text-muted-foreground truncate max-w-[120px]">{item.name}</span>

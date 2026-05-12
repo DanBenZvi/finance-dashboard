@@ -55,9 +55,9 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Top Level Summary Cards - Premium SaaS Grid */}
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-3">
         <MetricCard
           title="Total Portfolio AUM"
           value={formatCurrency(totalAumUsd)}
@@ -82,24 +82,24 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
 
       {/* Assets Data Table - Refined Design */}
       <div className="bg-card/50 border border-border rounded-2xl shadow-xl overflow-hidden backdrop-blur-sm">
-        <div className="px-8 py-6 border-b border-border flex items-center justify-between bg-card/80">
-          <div className="flex items-center gap-3">
-            <div className="bg-indigo-500/10 p-2 rounded-lg">
-              <PieChart className="h-5 w-5 text-indigo-400" />
+        <div className="px-4 py-4 sm:px-8 sm:py-6 border-b border-border flex items-center justify-between bg-card/80">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="bg-indigo-500/10 p-1.5 sm:p-2 rounded-lg">
+              <PieChart className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-400" />
             </div>
-            <h3 className="font-bold text-xl text-foreground tracking-tight">Portfolio Assets</h3>
+            <h3 className="font-bold text-lg sm:text-xl text-foreground tracking-tight">Portfolio Assets</h3>
           </div>
-          <div className="px-4 py-1 rounded-full bg-muted border border-border">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{portfolio.length} Holdings</span>
+          <div className="px-3 py-1 rounded-full bg-muted border border-border">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{portfolio.length} Holdings</span>
           </div>
         </div>
         
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[600px] md:min-w-full">
             <thead>
               <tr className="bg-muted/30">
                 <th 
-                  className="px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] cursor-pointer hover:text-foreground transition-colors group"
+                  className="px-4 py-3 sm:px-8 sm:py-4 text-[10px] sm:text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] cursor-pointer hover:text-foreground transition-colors group"
                   onClick={() => handleSort('ticker')}
                 >
                   <div className="flex items-center">
@@ -107,7 +107,7 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
                   </div>
                 </th>
                 <th 
-                  className="px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right cursor-pointer hover:text-foreground transition-colors group"
+                  className="hidden md:table-cell px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right cursor-pointer hover:text-foreground transition-colors group"
                   onClick={() => handleSort('quantity')}
                 >
                   <div className="flex items-center justify-end">
@@ -115,7 +115,7 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
                   </div>
                 </th>
                 <th 
-                  className="px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right cursor-pointer hover:text-foreground transition-colors group"
+                  className="px-4 py-3 sm:px-8 sm:py-4 text-[10px] sm:text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right cursor-pointer hover:text-foreground transition-colors group"
                   onClick={() => handleSort('aumUsd')}
                 >
                   <div className="flex items-center justify-end">
@@ -123,7 +123,7 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
                   </div>
                 </th>
                 <th 
-                  className="px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right cursor-pointer hover:text-foreground transition-colors group"
+                  className="hidden md:table-cell px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right cursor-pointer hover:text-foreground transition-colors group"
                   onClick={() => handleSort('dailyChangeUsd')}
                 >
                   <div className="flex items-center justify-end">
@@ -131,7 +131,7 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
                   </div>
                 </th>
                 <th 
-                  className="px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right cursor-pointer hover:text-foreground transition-colors group"
+                  className="px-4 py-3 sm:px-8 sm:py-4 text-[10px] sm:text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right cursor-pointer hover:text-foreground transition-colors group"
                   onClick={() => handleSort('dailyChangePercent')}
                 >
                   <div className="flex items-center justify-end">
@@ -143,27 +143,27 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
             <tbody className="divide-y divide-border">
               {sortedPortfolio.map((item, index) => (
                 <tr key={`${item.ticker}-${index}`} className="hover:bg-indigo-500/[0.03] transition-colors group">
-                  <td className="px-8 py-5">
+                  <td className="px-4 py-3 sm:px-8 sm:py-5">
                     <div className="flex flex-col gap-0.5">
-                      <div className="font-black text-base text-foreground group-hover:text-indigo-400 transition-colors tracking-tight">
+                      <div className="font-black text-sm sm:text-base text-foreground group-hover:text-indigo-400 transition-colors tracking-tight">
                         {item.ticker}
                       </div>
-                      <div className="text-[11px] font-medium text-muted-foreground truncate max-w-[200px]">
+                      <div className="text-[10px] sm:text-[11px] font-medium text-muted-foreground truncate max-w-[120px] sm:max-w-[200px]">
                         {item.securityName}
                       </div>
                     </div>
                   </td>
-                  <td className="px-8 py-5 text-right font-mono text-sm text-muted-foreground">
+                  <td className="hidden md:table-cell px-8 py-5 text-right font-mono text-sm text-muted-foreground">
                     {item.quantity.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                   </td>
-                  <td className="px-8 py-5 text-right font-bold text-foreground">
+                  <td className="px-4 py-3 sm:px-8 sm:py-5 text-right font-bold text-sm sm:text-base text-foreground">
                     {formatCurrency(item.aumUsd)}
                   </td>
-                  <td className={`px-8 py-5 text-right font-bold ${item.dailyChangeUsd >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  <td className={`hidden md:table-cell px-8 py-5 text-right font-bold ${item.dailyChangeUsd >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                     {item.dailyChangeUsd >= 0 ? '+' : ''}{formatCurrency(item.dailyChangeUsd)}
                   </td>
-                  <td className="px-8 py-5 text-right">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black tracking-tight ${
+                  <td className="px-4 py-3 sm:px-8 sm:py-5 text-right">
+                    <span className={`inline-flex items-center px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-black tracking-tight ${
                       item.dailyChangePercent >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
                     }`}>
                       {item.dailyChangePercent >= 0 ? '+' : ''}{formatPercent(item.dailyChangePercent)}
@@ -187,28 +187,28 @@ function MetricCard({ title, value, description, icon, trend }: {
   trend?: 'up' | 'down';
 }) {
   return (
-    <div className="bg-card border border-border rounded-2xl p-7 shadow-lg relative overflow-hidden group hover:border-indigo-500/50 transition-all">
+    <div className="bg-card border border-border rounded-2xl p-4 sm:p-7 shadow-lg relative overflow-hidden group hover:border-indigo-500/50 transition-all">
       <div className={`absolute top-0 left-0 w-full h-1 ${
         trend === 'up' ? 'bg-emerald-500' : trend === 'down' ? 'bg-rose-500' : 'bg-indigo-500'
       }`} />
       
-      <div className="flex justify-between items-start mb-6">
-        <div className="space-y-1">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">{title}</p>
+      <div className="flex justify-between items-start mb-3 sm:mb-6">
+        <div className="space-y-0.5 sm:space-y-1">
+          <p className="text-[9px] sm:text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">{title}</p>
           <div className="flex flex-col">
-            <h2 className={`text-3xl font-black tracking-tighter ${
+            <h2 className={`text-xl sm:text-3xl font-black tracking-tighter ${
               trend === 'up' ? 'text-emerald-400' : trend === 'down' ? 'text-rose-400' : 'text-foreground'
             }`}>
               {value}
             </h2>
           </div>
         </div>
-        <div className="bg-muted p-3 rounded-xl border border-border group-hover:scale-110 transition-transform">
-          {icon}
+        <div className="bg-muted p-2 sm:p-3 rounded-xl border border-border group-hover:scale-110 transition-transform">
+          {React.cloneElement(icon as React.ReactElement, { className: "h-5 w-5 sm:h-6 sm:w-6" })}
         </div>
       </div>
       
-      <p className="text-xs font-medium text-muted-foreground">{description}</p>
+      <p className="text-[10px] sm:text-xs font-medium text-muted-foreground">{description}</p>
     </div>
   );
 }

@@ -86,7 +86,11 @@ export function AumChart({ history }: AumChartProps) {
     
     const start = filteredHistory[0].timestamp;
     const end = filteredHistory[filteredHistory.length - 1].timestamp;
-    const count = 6; // Goal is about 6 ticks
+    
+    // Check if we're on mobile to reduce ticks and prevent overlap
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const count = isMobile ? 4 : 6; 
+    
     const interval = (end - start) / (count - 1);
     
     const result = [];
@@ -101,16 +105,16 @@ export function AumChart({ history }: AumChartProps) {
   const ranges: TimeRange[] = ['1W', '1M', '3M', 'YTD', '1Y', 'ALL'];
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-sm w-full">
+      <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-2">
-              <History className="h-5 w-5 text-primary" />
-              <h3 className="text-lg font-bold tracking-tight">Portfolio AUM History ($)</h3>
+              <History className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              <h3 className="text-base sm:text-lg font-bold tracking-tight">Portfolio AUM History ($)</h3>
             </div>
             {filteredHistory.length >= 2 && (
-              <div className={`px-2 py-0.5 rounded text-[11px] font-black flex items-center gap-1 ${
+              <div className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-black flex items-center gap-1 ${
                 rangePerformance >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
               }`}>
                 {rangePerformance >= 0 ? '↑' : '↓'}
@@ -119,15 +123,15 @@ export function AumChart({ history }: AumChartProps) {
               </div>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">Historical growth and capital appreciation</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">Historical growth and capital appreciation</p>
         </div>
         
-        <div className="flex p-1 bg-muted/50 rounded-lg border border-border w-fit">
+        <div className="flex p-0.5 sm:p-1 bg-muted/50 rounded-lg border border-border w-fit overflow-x-auto no-scrollbar">
           {ranges.map((r) => (
             <button
               key={r}
               onClick={() => setRange(r)}
-              className={`px-3 py-1.5 rounded-md text-[10px] font-black transition-all ${
+              className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-md text-[9px] sm:text-[10px] font-black transition-all ${
                 range === r 
                   ? "bg-primary text-primary-foreground shadow-sm" 
                   : "text-muted-foreground hover:text-foreground"
@@ -139,7 +143,7 @@ export function AumChart({ history }: AumChartProps) {
         </div>
       </div>
       
-      <div className="h-[350px] w-full">
+      <div className="h-[300px] sm:h-[350px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={filteredHistory} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
@@ -148,24 +152,25 @@ export function AumChart({ history }: AumChartProps) {
                 <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" strokeOpacity={0.2} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" strokeOpacity={0.1} />
             <XAxis 
               dataKey="timestamp" 
               type="number"
               domain={['dataMin', 'dataMax']}
               axisLine={false} 
               tickLine={false} 
-              tick={{ fill: '#888', fontSize: 10, fontWeight: 600 }}
+              tick={{ fill: '#888', fontSize: 9, fontWeight: 600 }}
               tickFormatter={(ts) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               ticks={ticks}
               dy={10}
+              minTickGap={10}
             />
             <YAxis 
               axisLine={false} 
               tickLine={false} 
-              tick={{ fill: '#888', fontSize: 10, fontWeight: 600 }}
+              tick={{ fill: '#888', fontSize: 9, fontWeight: 600 }}
               tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-              dx={-10}
+              width={40}
             />
             <Tooltip 
               contentStyle={{ 
@@ -185,7 +190,7 @@ export function AumChart({ history }: AumChartProps) {
               type="monotone" 
               dataKey="aumUsd" 
               stroke="#3b82f6" 
-              strokeWidth={3}
+              strokeWidth={2}
               fillOpacity={1} 
               fill="url(#colorAum)" 
               animationDuration={800}
