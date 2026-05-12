@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# testing
+coverage/
+
+# next.js
+.next/
+out/
+build/
+
+# environment variables & secrets (CRITICAL)
+.env
+.env.local
+.env.*.local
+*.json
+
+# whitelist necessary json files
+!package.json
+!package-lock.json
+!tsconfig.json
+!tailwind.config.json
+
+# misc
+.DS_Store
+*.pem
