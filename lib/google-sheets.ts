@@ -101,18 +101,55 @@ function parseNumeric(value: any): number {
 }
 
 /**
- * Parses date string in format "DD/MM/YYYY HH:mm:ss" to timestamp
+ * Parses a date string strictly in American format (MM/DD/YYYY).
  */
 function parseCustomDate(dateStr: string): number {
   if (!dateStr) return 0;
+  const cleaned = dateStr.toString().trim();
+  if (!cleaned) return 0;
+
   try {
-    const [datePart, timePart] = dateStr.split(' ');
-    const [day, month, year] = datePart.split('/').map(Number);
-    if (timePart) {
-      const [hours, minutes, seconds] = timePart.split(':').map(Number);
-      return new Date(year, month - 1, day, hours, minutes, seconds).getTime();
+    let datePart = cleaned;
+    let timePart = '';
+    
+    if (cleaned.includes(' ')) {
+      const parts = cleaned.split(/\s+/);
+      datePart = parts[0];
+      timePart = parts[1];
     }
-    return new Date(year, month - 1, day).getTime();
+
+    const separator = datePart.includes('/') ? '/' : (datePart.includes('-') ? '-' : '.');
+    const parts = datePart.split(separator).map(Number);
+    
+    if (parts.length !== 3) return 0;
+
+    let day, month, year;
+
+    // Handle MM/DD/YYYY (Standard American)
+    if (parts[2] > 100) {
+      year = parts[2];
+      month = parts[0];
+      day = parts[1];
+    } else if (parts[0] > 100) {
+      // Handle YYYY/MM/DD
+      year = parts[0];
+      month = parts[1];
+      day = parts[2];
+    } else {
+      return 0; 
+    }
+    
+    let hours = 0, minutes = 0, seconds = 0;
+    if (timePart) {
+      const tParts = timePart.split(':').map(Number);
+      hours = tParts[0] || 0;
+      minutes = tParts[1] || 0;
+      seconds = tParts[2] || 0;
+    }
+
+    const date = new Date(year, month - 1, day, hours, minutes, seconds);
+    const ts = date.getTime();
+    return isNaN(ts) ? 0 : ts;
   } catch (e) {
     return 0;
   }
@@ -124,7 +161,10 @@ function parseCustomDate(dateStr: string): number {
 function formatForChart(dateStr: string): string {
   const ts = parseCustomDate(dateStr);
   if (ts === 0) return dateStr;
-  return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return new Date(ts).toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric'
+  });
 }
 
 export async function fetchAllData() {

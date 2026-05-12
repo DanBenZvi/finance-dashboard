@@ -56,7 +56,7 @@ export function DashboardShell({ data }: DashboardShellProps) {
                 <div className="lg:col-span-3">
                   <PortfolioOverview portfolio={data.portfolio} />
                 </div>
-                <div className="lg:col-span-1 h-full">
+                <div className="lg:col-span-1 sticky top-8 h-fit">
                   <AllocationChart portfolio={data.portfolio} />
                 </div>
               </div>

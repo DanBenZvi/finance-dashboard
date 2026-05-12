@@ -28,26 +28,26 @@ export function AllocationChart({ portfolio }: AllocationChartProps) {
     : data;
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-6 shadow-xl h-full flex flex-col">
-      <div className="mb-4">
+    <div className="bg-card border border-border rounded-2xl p-6 shadow-xl h-fit">
+      <div className="mb-2">
         <h3 className="font-bold text-lg text-foreground tracking-tight">Portfolio Allocation</h3>
         <p className="text-xs text-muted-foreground">Distribution by AUM ($)</p>
       </div>
       
-      <div className="flex-1 min-h-[300px] w-full">
+      <div className="h-[350px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <ReChartsPie>
             <RechartsTooltip 
               contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px' }}
               itemStyle={{ color: 'var(--foreground)', fontSize: '12px', fontWeight: 'bold' }}
-              formatter={(value: number) => [formatCurrency(value), 'AUM']}
+              formatter={(value: number, name: string) => [formatCurrency(value), name]}
             />
             <Pie
               data={displayData}
               cx="50%"
               cy="50%"
-              innerRadius={60}
-              outerRadius={80}
+              innerRadius={70}
+              outerRadius={100}
               paddingAngle={5}
               dataKey="value"
               stroke="none"
@@ -58,7 +58,9 @@ export function AllocationChart({ portfolio }: AllocationChartProps) {
             </Pie>
             <Legend 
               verticalAlign="bottom" 
-              height={36}
+              align="center"
+              layout="horizontal"
+              wrapperStyle={{ paddingTop: '20px' }}
               iconType="circle"
               formatter={(value) => <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{value}</span>}
             />

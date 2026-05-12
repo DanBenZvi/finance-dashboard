@@ -1,12 +1,45 @@
+import React, { useState, useMemo } from "react";
 import { PortfolioItem } from "@/lib/google-sheets";
 import { formatCurrency, formatPercent } from "@/lib/utils";
-import { TrendingUp, TrendingDown, DollarSign, PieChart, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, PieChart, ArrowUpRight, ArrowDownRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 interface PortfolioOverviewProps {
   portfolio: PortfolioItem[];
 }
 
+type SortField = 'ticker' | 'quantity' | 'aumUsd' | 'dailyChangeUsd' | 'dailyChangePercent';
+type SortDirection = 'asc' | 'desc';
+
 export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
+  const [sortField, setSortField] = useState<SortField>('aumUsd');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  const handleSort = (field: SortField) => {
+    if (field === sortField) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const sortedPortfolio = useMemo(() => {
+    return [...portfolio].sort((a, b) => {
+      const aValue = a[sortField];
+      const bValue = b[sortField];
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc' 
+          ? aValue.localeCompare(bValue) 
+          : bValue.localeCompare(aValue);
+      }
+      
+      return sortDirection === 'asc' 
+        ? (aValue as number) - (bValue as number)
+        : (bValue as number) - (aValue as number);
+    });
+  }, [portfolio, sortField, sortDirection]);
+
   // Aggregate data only from the stock list (already filtered by range in fetchAllData)
   const totalAumUsd = portfolio.reduce((sum, item) => sum + item.aumUsd, 0);
   const totalDailyChangeUsd = portfolio.reduce((sum, item) => sum + item.dailyChangeUsd, 0);
@@ -15,6 +48,11 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
   const totalDailyChangePercent = totalAumUsd > totalDailyChangeUsd 
     ? (totalDailyChangeUsd / (totalAumUsd - totalDailyChangeUsd)) * 100 
     : 0;
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-20" />;
+    return sortDirection === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
 
   return (
     <div className="space-y-8">
@@ -60,15 +98,50 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-muted/30">
-                <th className="px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em]">Security</th>
-                <th className="px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right">Quantity</th>
-                <th className="px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right">AUM ($)</th>
-                <th className="px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right">Change ($)</th>
-                <th className="px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right">Change (%)</th>
+                <th 
+                  className="px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] cursor-pointer hover:text-foreground transition-colors group"
+                  onClick={() => handleSort('ticker')}
+                >
+                  <div className="flex items-center">
+                    Security <SortIcon field="ticker" />
+                  </div>
+                </th>
+                <th 
+                  className="px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right cursor-pointer hover:text-foreground transition-colors group"
+                  onClick={() => handleSort('quantity')}
+                >
+                  <div className="flex items-center justify-end">
+                    Quantity <SortIcon field="quantity" />
+                  </div>
+                </th>
+                <th 
+                  className="px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right cursor-pointer hover:text-foreground transition-colors group"
+                  onClick={() => handleSort('aumUsd')}
+                >
+                  <div className="flex items-center justify-end">
+                    AUM ($) <SortIcon field="aumUsd" />
+                  </div>
+                </th>
+                <th 
+                  className="px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right cursor-pointer hover:text-foreground transition-colors group"
+                  onClick={() => handleSort('dailyChangeUsd')}
+                >
+                  <div className="flex items-center justify-end">
+                    Change ($) <SortIcon field="dailyChangeUsd" />
+                  </div>
+                </th>
+                <th 
+                  className="px-8 py-4 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] text-right cursor-pointer hover:text-foreground transition-colors group"
+                  onClick={() => handleSort('dailyChangePercent')}
+                >
+                  <div className="flex items-center justify-end">
+                    Change (%) <SortIcon field="dailyChangePercent" />
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {portfolio.map((item, index) => (
+              {sortedPortfolio.map((item, index) => (
                 <tr key={`${item.ticker}-${index}`} className="hover:bg-indigo-500/[0.03] transition-colors group">
                   <td className="px-8 py-5">
                     <div className="flex flex-col gap-0.5">
