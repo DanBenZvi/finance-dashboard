@@ -500,7 +500,7 @@ export function Simulator() {
                       labelStyle={{ color: '#94a3b8', fontSize: '10px', marginBottom: '4px' }}
                       formatter={(value: number, name: string) => [
                         formatCurrency(value), 
-                        name === 'value' ? 'Portfolio' : `Benchmark (${benchmarkTicker})`
+                        name === 'Portfolio' ? 'Portfolio' : `Benchmark (${name})`
                       ]}
                     />
                     <Legend 
@@ -509,7 +509,7 @@ export function Simulator() {
                       wrapperStyle={{ fontSize: '10px', paddingBottom: '20px', textTransform: 'uppercase', fontWeight: 'bold' }}
                     />
                     <Area 
-                      name="value"
+                      name="Portfolio"
                       type="monotone" 
                       dataKey="value" 
                       stroke="#6366f1" 
@@ -519,7 +519,7 @@ export function Simulator() {
                       animationDuration={1500}
                     />
                     <Area 
-                      name="spy"
+                      name={benchmarkTicker}
                       type="monotone" 
                       dataKey="spy" 
                       stroke="#94a3b8" 
