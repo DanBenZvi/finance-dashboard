@@ -13,7 +13,7 @@ export async function getGoogleSheetsClient() {
   return google.sheets({ version: 'v4', auth });
 }
 
-export async function getSheetData(range: string, retries = 3): Promise<any[][]> {
+export async function getSheetData(range: string, retries = 3): Promise<string[][]> {
   try {
     const sheets = await getGoogleSheetsClient();
     const response = await sheets.spreadsheets.values.get({
@@ -21,8 +21,8 @@ export async function getSheetData(range: string, retries = 3): Promise<any[][]>
       range,
     });
 
-    return response.data.values || [];
-  } catch (error: any) {
+    return (response.data.values || []) as string[][];
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     const isTransientError = 
       error.message?.includes('socket') || 
       error.message?.includes('TLS') || 
@@ -89,12 +89,12 @@ export interface EconomicIndicators {
 /**
  * Robust numeric parsing that handles currency symbols, commas, and percentage signs.
  */
-function parseNumeric(value: any): number {
+function parseNumeric(value: unknown): number {
   if (value === undefined || value === null || value === '') return 0;
   if (typeof value === 'number') return value;
   
   // Clean string of all non-numeric characters except . and -
-  const cleaned = value.toString().replace(/[^0-9.-]/g, '');
+  const cleaned = String(value).replace(/[^0-9.-]/g, '');
   const parsed = parseFloat(cleaned);
   
   return isNaN(parsed) ? 0 : parsed;
@@ -150,7 +150,7 @@ function parseCustomDate(dateStr: string): number {
     const date = new Date(year, month - 1, day, hours, minutes, seconds);
     const ts = date.getTime();
     return isNaN(ts) ? 0 : ts;
-  } catch (e) {
+  } catch {
     return 0;
   }
 }
@@ -168,74 +168,91 @@ function formatForChart(dateStr: string): string {
 }
 
 export async function fetchAllData() {
-  const [portfolioRaw, marketWatchRaw, historyRaw, indicatorsRaw] = await Promise.all([
-    getSheetData('Portfolio!A2:O20'),
-    getSheetData('MarketWatch!A2:G'),
-    getSheetData('Daily History!A2:D'),
-    getSheetData('Portfolio!A26:C35'), // Expanded range to include B27 and B28
-  ]);
+  try {
+    const [portfolioRaw, marketWatchRaw, historyRaw, indicatorsRaw] = await Promise.all([
+      getSheetData('Portfolio!A2:O20'),
+      getSheetData('MarketWatch!A2:G'),
+      getSheetData('Daily History!A2:D'),
+      getSheetData('Portfolio!A26:C35'),
+    ]);
 
-  const portfolio = (portfolioRaw || []).map((row) => ({
-    securityName: row[0] || '',
-    ticker: row[1] || '',
-    quantity: parseNumeric(row[3]),
-    aumIls: parseNumeric(row[5]),
-    aumUsd: parseNumeric(row[6]),
-    shareOfPortfolio: parseNumeric(row[7]),
-    changeFromBuyPrice: parseNumeric(row[8]),
-    purchasePrice: parseNumeric(row[9]),
-    totalPurchase: parseNumeric(row[10]),
-    sharePrice: parseNumeric(row[11]),
-    dailyChangeUsd: parseNumeric(row[13]),
-    dailyChangePercent: parseNumeric(row[14]),
-  })) as PortfolioItem[];
+    const portfolio = (portfolioRaw || []).map((row, idx) => {
+      try {
+        return {
+          securityName: row[0] || '',
+          ticker: row[1] || '',
+          quantity: parseNumeric(row[3]),
+          aumIls: parseNumeric(row[5]),
+          aumUsd: parseNumeric(row[6]),
+          shareOfPortfolio: parseNumeric(row[7]),
+          changeFromBuyPrice: parseNumeric(row[8]),
+          purchasePrice: parseNumeric(row[9]),
+          totalPurchase: parseNumeric(row[10]),
+          sharePrice: parseNumeric(row[11]),
+          dailyChangeUsd: parseNumeric(row[13]),
+          dailyChangePercent: parseNumeric(row[14]),
+        };
+      } catch (e) {
+        console.error(`Error parsing portfolio row ${idx + 2}:`, e);
+        return null;
+      }
+    }).filter(Boolean) as PortfolioItem[];
 
-  const mapMarketWatch = (row: any[]) => ({
-    ticker: row[0] || '',
-    name: row[1] || '',
-    industry: row[2] || '',
-    dailyChangePercent: parseNumeric(row[3]),
-    monthlyChangePercent: parseNumeric(row[4]),
-    ytdChangePercent: parseNumeric(row[5]),
-    marketCap: parseNumeric(row[6]),
-  });
+    const mapMarketWatch = (row: string[]) => ({
+      ticker: row[0] || '',
+      name: row[1] || '',
+      industry: row[2] || '',
+      dailyChangePercent: parseNumeric(row[3]),
+      monthlyChangePercent: parseNumeric(row[4]),
+      ytdChangePercent: parseNumeric(row[5]),
+      marketCap: parseNumeric(row[6]),
+    });
 
-  const history = (historyRaw || [])
-    .map((row) => ({
-      date: formatForChart(row[0] || ''),
-      timestamp: parseCustomDate(row[0] || ''),
-      aumUsd: parseNumeric(row[1]),
-      dailyProfitUsd: parseNumeric(row[2]),
-      totalInvestedUsd: parseNumeric(row[3]),
-    }))
-    .filter(item => item.timestamp > 0)
-    .sort((a, b) => a.timestamp - b.timestamp) as HistoryItem[];
+    const history = (historyRaw || [])
+      .map((row) => ({
+        date: formatForChart(row[0] || ''),
+        timestamp: parseCustomDate(row[0] || ''),
+        aumUsd: parseNumeric(row[1]),
+        dailyProfitUsd: parseNumeric(row[2]),
+        totalInvestedUsd: parseNumeric(row[3]),
+      }))
+      .filter(item => item.timestamp > 0)
+      .sort((a, b) => a.timestamp - b.timestamp) as HistoryItem[];
 
-  // Dynamic lookup for indicators
-  const findValue = (label: string) => {
-    const row = indicatorsRaw?.find(r => 
-      r[0]?.toString().toLowerCase().includes(label.toLowerCase()) ||
-      r[1]?.toString().toLowerCase().includes(label.toLowerCase())
-    );
-    if (row) {
-      // Find the index of the column containing the label
-      const labelIndex = row.findIndex(c => c?.toString().toLowerCase().includes(label.toLowerCase()));
-      // The value should be in the next column
-      return parseNumeric(row[labelIndex + 1]);
-    }
-    return 0;
-  };
+    // Dynamic lookup for indicators
+    const findValue = (label: string) => {
+      if (!indicatorsRaw) return 0;
+      const row = indicatorsRaw.find(r => 
+        r[0]?.toString().toLowerCase().includes(label.toLowerCase()) ||
+        r[1]?.toString().toLowerCase().includes(label.toLowerCase())
+      );
+      if (row) {
+        const labelIndex = row.findIndex(c => c?.toString().toLowerCase().includes(label.toLowerCase()));
+        return parseNumeric(row[labelIndex + 1]);
+      }
+      return 0;
+    };
 
-  const indicators: EconomicIndicators = {
-    israelInterest: findValue('Interest'),
-    usdIls: findValue('USD/ILS'),
-    ilsUsd: findValue('ILS/USD'),
-  };
+    const indicators: EconomicIndicators = {
+      israelInterest: findValue('Interest'),
+      usdIls: findValue('USD/ILS'),
+      ilsUsd: findValue('ILS/USD'),
+    };
 
-  return {
-    portfolio,
-    marketWatch: (marketWatchRaw || []).map(mapMarketWatch) as MarketWatchItem[],
-    history,
-    indicators,
-  };
+    return {
+      portfolio,
+      marketWatch: (marketWatchRaw || []).map(mapMarketWatch) as MarketWatchItem[],
+      history,
+      indicators,
+    };
+  } catch (error) {
+    console.error('Fatal error in fetchAllData:', error);
+    // Return empty but valid structure to prevent crash
+    return {
+      portfolio: [],
+      marketWatch: [],
+      history: [],
+      indicators: { israelInterest: 0, usdIls: 0, ilsUsd: 0 }
+    };
+  }
 }

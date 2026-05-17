@@ -1,7 +1,8 @@
 "use client";
 
+import React from "react";
 import { PortfolioItem } from "@/lib/google-sheets";
-import { formatCurrency, formatPercent } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { PieChart as ReChartsPie, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from "recharts";
 
 interface AllocationChartProps {
@@ -14,7 +15,13 @@ const COLORS = [
 ];
 
 export function AllocationChart({ portfolio }: AllocationChartProps) {
-  const data = portfolio
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const data = (portfolio || [])
     .filter(item => item.aumUsd > 0)
     .map(item => ({
       name: item.ticker,
@@ -35,37 +42,43 @@ export function AllocationChart({ portfolio }: AllocationChartProps) {
       </div>
       
       <div className="h-[300px] sm:h-[350px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <ReChartsPie>
-            <RechartsTooltip 
-              contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px' }}
-              itemStyle={{ color: 'var(--foreground)', fontSize: '10px sm:12px', fontWeight: 'bold' }}
-              formatter={(value: number, name: string) => [formatCurrency(value), name]}
-            />
-            <Pie
-              data={displayData}
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={90}
-              paddingAngle={5}
-              dataKey="value"
-              stroke="none"
-            >
-              {displayData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Legend 
-              verticalAlign="bottom" 
-              align="center"
-              layout="horizontal"
-              wrapperStyle={{ paddingTop: '10px sm:20px' }}
-              iconType="circle"
-              formatter={(value) => <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{value}</span>}
-            />
-          </ReChartsPie>
-        </ResponsiveContainer>
+        {mounted ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <ReChartsPie>
+              <RechartsTooltip 
+                contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px' }}
+                itemStyle={{ color: 'var(--foreground)', fontSize: '10px sm:12px', fontWeight: 'bold' }}
+                formatter={(value: number, name: string) => [formatCurrency(value), name]}
+              />
+              <Pie
+                data={displayData}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={90}
+                paddingAngle={5}
+                dataKey="value"
+                stroke="none"
+              >
+                {displayData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Legend 
+                verticalAlign="bottom" 
+                align="center"
+                layout="horizontal"
+                wrapperStyle={{ paddingTop: '10px sm:20px' }}
+                iconType="circle"
+                formatter={(value) => <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{value}</span>}
+              />
+            </ReChartsPie>
+          </ResponsiveContainer>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -5,8 +5,8 @@ export function middleware(request: NextRequest) {
   const authCookie = request.cookies.get('dashboard_auth');
   const { pathname } = request.nextUrl;
 
-  // Allow access to login page and auth API
-  if (pathname === '/login' || pathname.startsWith('/api/auth')) {
+  // Allow access to login page, auth API, and simulator API
+  if (pathname === '/login' || pathname.startsWith('/api/auth') || pathname.startsWith('/api/simulator')) {
     if (authCookie?.value === 'authenticated' && pathname === '/login') {
       return NextResponse.redirect(new URL('/', request.url));
     }

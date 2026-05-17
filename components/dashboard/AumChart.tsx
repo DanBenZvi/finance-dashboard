@@ -1,4 +1,4 @@
-"use client";
+  "use client";
 
 import React, { useState, useMemo } from "react";
 import { HistoryItem } from "@/lib/google-sheets";
@@ -22,21 +22,11 @@ type TimeRange = '1W' | '1M' | '3M' | 'YTD' | '1Y' | 'ALL';
 
 export function AumChart({ history }: AumChartProps) {
   const [range, setRange] = useState<TimeRange>('ALL');
+  const [mounted, setMounted] = useState(false);
 
-  // If no data, show an empty state to avoid a blank section
-  if (!history || history.length === 0) {
-    return (
-      <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-sm">
-        <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-          <History className="h-6 w-6 text-muted-foreground" />
-        </div>
-        <h3 className="text-lg font-bold">No History Data</h3>
-        <p className="text-sm text-muted-foreground max-w-[280px] mx-auto mt-2">
-          Your "Daily History" sheet appears to be empty or formatted incorrectly.
-        </p>
-      </div>
-    );
-  }
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { filteredHistory, rangePerformance } = useMemo(() => {
     let startTime = 0;
@@ -63,8 +53,8 @@ export function AumChart({ history }: AumChartProps) {
     }
 
     const filtered = range === 'ALL' 
-      ? [...history].sort((a, b) => a.timestamp - b.timestamp)
-      : history
+      ? [...(history || [])].sort((a, b) => a.timestamp - b.timestamp)
+      : (history || [])
           .filter(item => item.timestamp >= startTime)
           .sort((a, b) => a.timestamp - b.timestamp);
 
@@ -101,6 +91,21 @@ export function AumChart({ history }: AumChartProps) {
     result[result.length - 1] = end;
     return result;
   }, [filteredHistory]);
+
+  // If no data, show an empty state to avoid a blank section
+  if (!history || history.length === 0) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-sm">
+        <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+          <History className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-bold">No History Data</h3>
+        <p className="text-sm text-muted-foreground max-w-[280px] mx-auto mt-2">
+          Your &quot;Daily History&quot; sheet appears to be empty or formatted incorrectly.
+        </p>
+      </div>
+    );
+  }
 
   const ranges: TimeRange[] = ['1W', '1M', '3M', 'YTD', '1Y', 'ALL'];
 
@@ -144,59 +149,65 @@ export function AumChart({ history }: AumChartProps) {
       </div>
       
       <div className="h-[300px] sm:h-[350px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={filteredHistory} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="colorAum" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" strokeOpacity={0.1} />
-            <XAxis 
-              dataKey="timestamp" 
-              type="number"
-              domain={['dataMin', 'dataMax']}
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fill: '#888', fontSize: 9, fontWeight: 600 }}
-              tickFormatter={(ts) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              ticks={ticks}
-              dy={10}
-              minTickGap={10}
-            />
-            <YAxis 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fill: '#888', fontSize: 9, fontWeight: 600 }}
-              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-              width={40}
-            />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: 'var(--card)', 
-                border: '1px solid var(--border)', 
-                borderRadius: '12px',
-                padding: '12px',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-              }}
-              itemStyle={{ color: 'var(--foreground)', fontSize: '12px', fontWeight: 'bold' }}
-              labelStyle={{ color: 'var(--muted-foreground)', fontSize: '10px', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}
-              labelFormatter={(ts) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              formatter={(value: number) => [formatCurrency(value), 'TOTAL AUM']}
-              cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '5 5' }}
-            />
-            <Area 
-              type="monotone" 
-              dataKey="aumUsd" 
-              stroke="#3b82f6" 
-              strokeWidth={2}
-              fillOpacity={1} 
-              fill="url(#colorAum)" 
-              animationDuration={800}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        {mounted ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={filteredHistory} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorAum" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" strokeOpacity={0.1} />
+              <XAxis 
+                dataKey="timestamp" 
+                type="number"
+                domain={['dataMin', 'dataMax']}
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fill: '#888', fontSize: 9, fontWeight: 600 }}
+                tickFormatter={(ts) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                ticks={ticks}
+                dy={10}
+                minTickGap={10}
+              />
+              <YAxis 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fill: '#888', fontSize: 9, fontWeight: 600 }}
+                tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                width={40}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'var(--card)', 
+                  border: '1px solid var(--border)', 
+                  borderRadius: '12px',
+                  padding: '12px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                }}
+                itemStyle={{ color: 'var(--foreground)', fontSize: '12px', fontWeight: 'bold' }}
+                labelStyle={{ color: 'var(--muted-foreground)', fontSize: '10px', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                labelFormatter={(ts) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                formatter={(value: number) => [formatCurrency(value), 'TOTAL AUM']}
+                cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '5 5' }}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="aumUsd" 
+                stroke="#3b82f6" 
+                strokeWidth={2}
+                fillOpacity={1} 
+                fill="url(#colorAum)" 
+                animationDuration={800}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -4,16 +4,23 @@ import React, { useState } from "react";
 import { PortfolioOverview } from "@/components/dashboard/PortfolioOverview";
 import { AumChart } from "@/components/dashboard/AumChart";
 import { MarketWatch } from "@/components/dashboard/MarketWatch";
+import { Simulator } from "@/components/dashboard/Simulator";
 import { Header } from "@/components/dashboard/Header";
 import { AllocationChart } from "@/components/dashboard/AllocationChart";
-import { LayoutDashboard, TrendingUp, Globe } from "lucide-react";
+import { PortfolioItem, MarketWatchItem, HistoryItem, EconomicIndicators } from "@/lib/google-sheets";
+import { LayoutDashboard, TrendingUp, Globe, Play } from "lucide-react";
 
 interface DashboardShellProps {
-  data: any;
+  data: {
+    portfolio: PortfolioItem[];
+    marketWatch: MarketWatchItem[];
+    history: HistoryItem[];
+    indicators: EconomicIndicators;
+  };
 }
 
 export function DashboardShell({ data }: DashboardShellProps) {
-  const [activeTab, setActiveTab] = useState<"portfolio" | "marketwatch">("portfolio");
+  const [activeTab, setActiveTab] = useState<"portfolio" | "marketwatch" | "simulator">("portfolio");
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-indigo-500/30">
@@ -45,6 +52,17 @@ export function DashboardShell({ data }: DashboardShellProps) {
               <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Market Watch
             </button>
+            <button
+              onClick={() => setActiveTab("simulator")}
+              className={`flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-2.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all duration-200 ${
+                activeTab === "simulator"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              Simulator
+            </button>
           </nav>
         </div>
 
@@ -66,7 +84,7 @@ export function DashboardShell({ data }: DashboardShellProps) {
                 <AumChart history={data.history} />
               </section>
             </div>
-          ) : (
+          ) : activeTab === "marketwatch" ? (
             <div className="max-w-[1200px] mx-auto space-y-6">
               <div className="flex items-center justify-between px-2 sm:px-4">
                 <div className="space-y-0.5 sm:space-y-1">
@@ -80,6 +98,10 @@ export function DashboardShell({ data }: DashboardShellProps) {
               <div className="animate-in slide-in-from-bottom-4 duration-700">
                 <MarketWatch items={data.marketWatch} />
               </div>
+            </div>
+          ) : (
+            <div className="animate-in slide-in-from-bottom-4 duration-700">
+              <Simulator />
             </div>
           )}
         </main>
