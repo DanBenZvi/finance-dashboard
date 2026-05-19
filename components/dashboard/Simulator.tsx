@@ -48,6 +48,8 @@ interface Position {
   historicalData: HistoricalPrice[];
 }
 
+type TimeRange = '1M' | 'YTD' | '1Y' | '5Y';
+
 export function Simulator() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [ticker, setTicker] = useState("");
@@ -58,6 +60,7 @@ export function Simulator() {
   const [spyData, setSpyData] = useState<HistoricalPrice[]>([]);
   const [benchmarkTicker, setBenchmarkTicker] = useState("SPY");
   const [isBenchmarkLoading, setIsBenchmarkLoading] = useState(false);
+  const [selectedRange, setSelectedRange] = useState<TimeRange>('5Y');
 
   // Fetch benchmark data
   const fetchBenchmarkData = async (symbol: string) => {
@@ -148,44 +151,102 @@ export function Simulator() {
   const chartData = useMemo(() => {
     if (positions.length === 0 || spyData.length === 0) return [];
 
-    // Find the earliest entry date among all positions
-    const earliestTimestamp = Math.min(...positions.map(p => new Date(p.entryDate).getTime()));
-    
-    // Normalize SPY to the initial portfolio value for benchmarking
-    const timeline = spyData.filter(d => d.timestamp >= earliestTimestamp);
+    // 1. Initial timeline from benchmark data
+    let timeline = [...spyData];
     if (timeline.length === 0) return [];
 
-    const initialSpyPrice = timeline[0].price;
+    // 2. Filter timeline to start ONLY from the earliest entry date of the portfolio
+    // (We cannot simulate growth before any investment was made)
+    const validPositions = positions.filter(p => p.entryDate && !isNaN(new Date(p.entryDate).getTime()));
+    if (validPositions.length === 0) return [];
+    
+    const earliestEntryTimestamp = Math.min(...validPositions.map(p => new Date(p.entryDate).getTime()));
+    timeline = timeline.filter(d => d.timestamp >= earliestEntryTimestamp);
 
-    return timeline.map((point) => {
+    // 3. Apply Time Range Filter (Zoom) relative to the LATEST available data point
+    const latestTimestamp = timeline[timeline.length - 1].timestamp;
+    if (selectedRange !== '5Y') {
+      let cutoff = 0;
+      const latestDate = new Date(latestTimestamp);
+      if (selectedRange === '1M') {
+        cutoff = new Date(latestDate).setMonth(latestDate.getMonth() - 1);
+      } else if (selectedRange === 'YTD') {
+        cutoff = new Date(latestDate.getFullYear(), 0, 1).getTime();
+      } else if (selectedRange === '1Y') {
+        cutoff = new Date(latestDate).setFullYear(latestDate.getFullYear() - 1);
+      }
+      // Only clip if the cutoff is after our earliest data point
+      if (cutoff > earliestEntryTimestamp) {
+        timeline = timeline.filter(d => d.timestamp >= cutoff);
+      }
+    }
+
+    if (timeline.length === 0) return [];
+
+    const rawData = timeline.map((point) => {
       let portfolioValue = 0;
+      let benchmarkValue = 0;
       let investedAmount = 0;
       
       positions.forEach(pos => {
         const posEntryTime = new Date(pos.entryDate).getTime();
         if (posEntryTime <= point.timestamp) {
+          // Calculate Portfolio Value
           const priceAtTime = pos.historicalData.reduce((prev: HistoricalPrice, curr: HistoricalPrice) => {
             return Math.abs(curr.timestamp - point.timestamp) < Math.abs(prev.timestamp - point.timestamp) ? curr : prev;
           }).price;
           portfolioValue += priceAtTime * pos.quantity;
-          investedAmount += pos.entryPrice * pos.quantity;
+
+          // Calculate Benchmark Equivalent (Shadow Portfolio)
+          // Find benchmark price at position entry date
+          const benchmarkEntryPrice = spyData.reduce((prev: HistoricalPrice, curr: HistoricalPrice) => {
+            return Math.abs(curr.timestamp - posEntryTime) < Math.abs(prev.timestamp - posEntryTime) ? curr : prev;
+          }).price;
+          const investedForPos = pos.entryPrice * pos.quantity;
+          const benchmarkShares = investedForPos / benchmarkEntryPrice;
+          benchmarkValue += benchmarkShares * point.price;
+
+          investedAmount += investedForPos;
         }
       });
-
-      // Normalize SPY: (Current SPY / Initial SPY) * Total Initial Investment
-      // For simplicity, we'll normalize to the total invested amount at the start of the simulation
-      const firstPosInvestment = positions[0].entryPrice * positions[0].quantity;
-      const spyNormalized = (point.price / initialSpyPrice) * firstPosInvestment;
 
       return {
         date: point.date,
         timestamp: point.timestamp,
         value: portfolioValue,
-        spy: spyNormalized,
+        spy: benchmarkValue,
         invested: investedAmount
       };
     });
-  }, [positions, spyData]);
+
+    // Normalize to percentage return from the start of the visible range
+    const firstValidPoint = rawData.find(d => d.value > 0 && d.spy > 0);
+    if (!firstValidPoint) return [];
+
+    const basePortfolioRatio = firstValidPoint.value / firstValidPoint.invested;
+    const baseBenchmarkRatio = firstValidPoint.spy / firstValidPoint.invested;
+
+    return rawData.map(point => {
+      // Calculate current performance ratio (Value / Cost)
+      const currentPortfolioRatio = point.invested > 0 ? point.value / point.invested : 0;
+      const currentBenchmarkRatio = point.invested > 0 ? point.spy / point.invested : 0;
+
+      // Calculate percentage return relative to the baseline of this specific time window
+      // This shows how much the $1 invested (at the start of the window) grew
+      const portfolioReturn = basePortfolioRatio > 0 
+        ? ((currentPortfolioRatio / basePortfolioRatio) - 1) * 100 
+        : 0;
+      const benchmarkReturn = baseBenchmarkRatio > 0 
+        ? ((currentBenchmarkRatio / baseBenchmarkRatio) - 1) * 100 
+        : 0;
+
+      return {
+        ...point,
+        portfolioReturn,
+        benchmarkReturn
+      };
+    });
+  }, [positions, spyData, selectedRange]);
 
   const metrics = useMemo(() => {
     if (positions.length === 0 || chartData.length === 0) return null;
@@ -194,6 +255,11 @@ export function Simulator() {
     const currentValue = positions.reduce((acc, p) => acc + (p.currentPrice * p.quantity), 0);
     const totalPl = currentValue - totalCost;
     const totalPlPercent = (totalPl / totalCost) * 100;
+
+    // Range Performance
+    const lastPoint = chartData[chartData.length - 1];
+    const rangePortfolioReturn = lastPoint.portfolioReturn;
+    const rangeBenchmarkReturn = lastPoint.benchmarkReturn;
 
     // Max Drawdown Calculation
     let maxDD = 0;
@@ -234,7 +300,9 @@ export function Simulator() {
       totalPlPercent,
       sectorData,
       maxDD,
-      volatility
+      volatility,
+      rangePortfolioReturn,
+      rangeBenchmarkReturn
     };
   }, [positions, chartData]);
 
@@ -255,18 +323,36 @@ export function Simulator() {
         </div>
 
         {metrics && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-card border border-border p-4 rounded-2xl">
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Total Value</p>
               <p className="text-xl font-black text-foreground italic">{formatCurrency(metrics.currentValue)}</p>
             </div>
             <div className="bg-card border border-border p-4 rounded-2xl">
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Total P&L</p>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Overall P&L</p>
               <p className={cn(
                 "text-xl font-black italic",
                 metrics.totalPl >= 0 ? "text-emerald-400" : "text-rose-400"
               )}>
-                {metrics.totalPl >= 0 ? "+" : ""}{formatCurrency(metrics.totalPl)}
+                {metrics.totalPl >= 0 ? "+" : ""}{formatPercent(metrics.totalPlPercent)}
+              </p>
+            </div>
+            <div className="bg-card border border-border p-4 rounded-2xl md:col-span-1">
+              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">{selectedRange} Return</p>
+              <p className={cn(
+                "text-xl font-black italic",
+                metrics.rangePortfolioReturn >= 0 ? "text-emerald-400" : "text-rose-400"
+              )}>
+                {metrics.rangePortfolioReturn >= 0 ? "+" : ""}{metrics.rangePortfolioReturn.toFixed(2)}%
+              </p>
+            </div>
+            <div className="bg-card border border-border p-4 rounded-2xl md:col-span-1">
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{benchmarkTicker} {selectedRange}</p>
+              <p className={cn(
+                "text-xl font-black italic",
+                metrics.rangeBenchmarkReturn >= 0 ? "text-emerald-400" : "text-rose-400"
+              )}>
+                {metrics.rangeBenchmarkReturn >= 0 ? "+" : ""}{metrics.rangeBenchmarkReturn.toFixed(2)}%
               </p>
             </div>
           </div>
@@ -428,7 +514,7 @@ export function Simulator() {
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-sm font-black text-foreground uppercase tracking-wider flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-emerald-400" />
-                Growth Projection
+                Growth Projection (%)
               </h3>
               <div className="flex items-center gap-3">
                 <div className="relative group">
@@ -459,8 +545,17 @@ export function Simulator() {
                 </div>
                 <div className="h-4 w-px bg-border mx-1" />
                 <div className="flex gap-2">
-                  {['1M', 'YTD', '1Y', '5Y'].map((range) => (
-                    <button key={range} className="px-2 py-1 text-[8px] font-black text-muted-foreground hover:text-indigo-400 border border-border rounded-md hover:bg-indigo-500/5 transition-all">
+                  {(['1M', 'YTD', '1Y', '5Y'] as TimeRange[]).map((range) => (
+                    <button 
+                      key={range} 
+                      onClick={() => setSelectedRange(range)}
+                      className={cn(
+                        "px-2 py-1 text-[8px] font-black border rounded-md transition-all",
+                        selectedRange === range 
+                          ? "bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-500/20" 
+                          : "text-muted-foreground border-border hover:text-indigo-400 hover:bg-indigo-500/5"
+                      )}
+                    >
                       {range}
                     </button>
                   ))}
@@ -492,16 +587,23 @@ export function Simulator() {
                       fontSize={10} 
                       tickLine={false} 
                       axisLine={false}
-                      tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                      tickFormatter={(value) => {
+                        if (typeof value !== 'number' || isNaN(value)) return '0%';
+                        return `${value > 0 ? '+' : ''}${value.toFixed(0)}%`;
+                      }}
                     />
                     <Tooltip 
                       contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }}
                       itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
                       labelStyle={{ color: '#94a3b8', fontSize: '10px', marginBottom: '4px' }}
-                      formatter={(value: number, name: string) => [
-                        formatCurrency(value), 
-                        name === 'Portfolio' ? 'Portfolio' : `Benchmark (${name})`
-                      ]}
+                      formatter={(value: number | string, name: string) => {
+                        const numValue = Number(value);
+                        if (isNaN(numValue)) return ['0.00%', name];
+                        return [
+                          `${numValue >= 0 ? '+' : ''}${numValue.toFixed(2)}%`, 
+                          name === 'Portfolio' ? 'Portfolio' : `Benchmark (${name})`
+                        ];
+                      }}
                     />
                     <Legend 
                       verticalAlign="top" 
@@ -511,7 +613,7 @@ export function Simulator() {
                     <Area 
                       name="Portfolio"
                       type="monotone" 
-                      dataKey="value" 
+                      dataKey="portfolioReturn" 
                       stroke="#6366f1" 
                       strokeWidth={3}
                       fillOpacity={1} 
@@ -521,7 +623,7 @@ export function Simulator() {
                     <Area 
                       name={benchmarkTicker}
                       type="monotone" 
-                      dataKey="spy" 
+                      dataKey="benchmarkReturn" 
                       stroke="#94a3b8" 
                       strokeWidth={2}
                       strokeDasharray="5 5"
