@@ -1,5 +1,18 @@
 import { google } from 'googleapis';
 
+// Suppress specific Node.js deprecation warnings that can clutter the console
+// especially in Turbopack environments with newer Node versions.
+if (typeof process !== 'undefined' && typeof process.emit === 'function') {
+  const originalEmit = process.emit;
+  // @ts-ignore
+  process.emit = function (name: string | symbol, ...args: any[]) {
+    if (name === 'warning' && args[0] && typeof args[0] === 'object' && args[0].code === 'DEP0108') {
+      return false;
+    }
+    return originalEmit.apply(process, [name, ...args]);
+  };
+}
+
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 
 export async function getGoogleSheetsClient() {
@@ -23,11 +36,12 @@ export async function getSheetData(range: string, retries = 3): Promise<string[]
 
     return (response.data.values || []) as string[][];
   } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    const errorMessage = error?.message || String(error);
     const isTransientError = 
-      error.message?.includes('socket') || 
-      error.message?.includes('TLS') || 
-      error.message?.includes('ECONNRESET') ||
-      error.message?.includes('ETIMEDOUT') ||
+      errorMessage.includes('socket') || 
+      errorMessage.includes('TLS') || 
+      errorMessage.includes('ECONNRESET') ||
+      errorMessage.includes('ETIMEDOUT') ||
       error.code === 'ETIMEDOUT' ||
       error.code === 'ECONNRESET';
 
@@ -41,7 +55,7 @@ export async function getSheetData(range: string, retries = 3): Promise<string[]
     if (error?.response?.data?.error?.message?.includes('Unable to parse range')) {
       console.warn(`Warning: Range "${range}" not found.`);
     } else {
-      console.error(`Error fetching data for range "${range}":`, error?.message || error);
+      console.error(`Error fetching data for range "${range}":`, errorMessage);
     }
     return [];
   }
@@ -88,15 +102,24 @@ export interface EconomicIndicators {
 
 /**
  * Robust numeric parsing that handles currency symbols, commas, and percentage signs.
+ * Also handles negative numbers in parentheses (e.g., (1,234.56) -> -1234.56)
  */
 function parseNumeric(value: unknown): number {
   if (value === undefined || value === null || value === '') return 0;
   if (typeof value === 'number') return value;
   
-  // Clean string of all non-numeric characters except . and -
-  const cleaned = String(value).replace(/[^0-9.-]/g, '');
-  const parsed = parseFloat(cleaned);
+  const str = String(value).trim();
+  const isNegative = str.startsWith('(') && str.endsWith(')');
   
+  // Clean string of all non-numeric characters except . and -
+  let cleaned = str.replace(/[^0-9.-]/g, '');
+  
+  // If it was in parentheses, make it negative if not already
+  if (isNegative && !cleaned.startsWith('-')) {
+    cleaned = '-' + cleaned;
+  }
+  
+  const parsed = parseFloat(cleaned);
   return isNaN(parsed) ? 0 : parsed;
 }
 
@@ -169,34 +192,37 @@ function formatForChart(dateStr: string): string {
 
 export async function fetchAllData() {
   try {
-    const [portfolioRaw, marketWatchRaw, historyRaw, indicatorsRaw] = await Promise.all([
-      getSheetData('Portfolio!A2:O20'),
+    const [portfolioRaw, marketWatchRaw, historyRaw, indicatorsRaw, usdIlsNamedRange] = await Promise.all([
+      getSheetData('Portfolio!A2:O100'), // Increased range to handle more holdings
       getSheetData('MarketWatch!A2:G'),
       getSheetData('Daily History!A2:D'),
       getSheetData('Portfolio!A26:C35'),
+      getSheetData('USD_ILS'), // Fetch named range for USD/ILS rate
     ]);
 
-    const portfolio = (portfolioRaw || []).map((row, idx) => {
-      try {
-        return {
-          securityName: row[0] || '',
-          ticker: row[1] || '',
-          quantity: parseNumeric(row[3]),
-          aumIls: parseNumeric(row[5]),
-          aumUsd: parseNumeric(row[6]),
-          shareOfPortfolio: parseNumeric(row[7]),
-          changeFromBuyPrice: parseNumeric(row[8]),
-          purchasePrice: parseNumeric(row[9]),
-          totalPurchase: parseNumeric(row[10]),
-          sharePrice: parseNumeric(row[11]),
-          dailyChangeUsd: parseNumeric(row[13]),
-          dailyChangePercent: parseNumeric(row[14]),
-        };
-      } catch (e) {
-        console.error(`Error parsing portfolio row ${idx + 2}:`, e);
-        return null;
-      }
-    }).filter(Boolean) as PortfolioItem[];
+    const portfolio = (portfolioRaw || [])
+      .filter(row => row[0] || row[1]) // Only process rows with security name or ticker
+      .map((row, idx) => {
+        try {
+          return {
+            securityName: row[0] || '',
+            ticker: row[1] || '',
+            quantity: parseNumeric(row[3]),
+            aumIls: parseNumeric(row[5]),
+            aumUsd: parseNumeric(row[6]),
+            shareOfPortfolio: parseNumeric(row[7]),
+            changeFromBuyPrice: parseNumeric(row[8]),
+            purchasePrice: parseNumeric(row[9]),
+            totalPurchase: parseNumeric(row[10]),
+            sharePrice: parseNumeric(row[11]),
+            dailyChangeUsd: parseNumeric(row[13]),
+            dailyChangePercent: parseNumeric(row[14]),
+          };
+        } catch (e) {
+          console.error(`Error parsing portfolio row ${idx + 2}:`, e);
+          return null;
+        }
+      }).filter(Boolean) as PortfolioItem[];
 
     const mapMarketWatch = (row: string[]) => ({
       ticker: row[0] || '',
@@ -233,10 +259,12 @@ export async function fetchAllData() {
       return 0;
     };
 
+    const usdIls = usdIlsNamedRange?.[0]?.[0] ? parseNumeric(usdIlsNamedRange[0][0]) : findValue('USD/ILS');
+
     const indicators: EconomicIndicators = {
       israelInterest: findValue('Interest'),
-      usdIls: findValue('USD/ILS'),
-      ilsUsd: findValue('ILS/USD'),
+      usdIls,
+      ilsUsd: usdIls > 0 ? (1 / usdIls) : findValue('ILS/USD'),
     };
 
     return {
