@@ -4,12 +4,12 @@ import { google } from 'googleapis';
 // especially in Turbopack environments with newer Node versions.
 if (typeof process !== 'undefined' && typeof process.emit === 'function') {
   const originalEmit = process.emit;
-  // @ts-ignore
-  process.emit = function (name: string | symbol, ...args: any[]) {
+  // Use 'any' casting to bypass strict type checks on process.emit during Vercel builds
+  (process as any).emit = function (name: any, ...args: any[]) {
     if (name === 'warning' && args[0] && typeof args[0] === 'object' && args[0].code === 'DEP0108') {
       return false;
     }
-    return originalEmit.apply(process, [name, ...args]);
+    return originalEmit.apply(process, arguments as any);
   };
 }
 
