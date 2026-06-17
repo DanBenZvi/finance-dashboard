@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { PortfolioOverview } from "@/components/dashboard/PortfolioOverview";
 import { AumChart } from "@/components/dashboard/AumChart";
+import { PortfolioPerformanceChart } from "@/components/dashboard/PortfolioPerformanceChart";
 import { MarketWatch } from "@/components/dashboard/MarketWatch";
 import { Simulator } from "@/components/dashboard/Simulator";
 import { Header } from "@/components/dashboard/Header";
@@ -21,6 +22,15 @@ interface DashboardShellProps {
 
 export function DashboardShell({ data }: DashboardShellProps) {
   const [activeTab, setActiveTab] = useState<"portfolio" | "marketwatch" | "simulator">("portfolio");
+
+  // Transform history data for the new Performance Chart
+  const performanceData = useMemo(() => {
+    return (data.history || []).map(item => ({
+      date: new Date(item.timestamp).toISOString().split('T')[0], // Ensure YYYY-MM-DD format
+      totalAum: item.aumUsd,
+      investedCapital: item.totalInvestedUsd
+    }));
+  }, [data.history]);
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-indigo-500/30">
@@ -78,6 +88,11 @@ export function DashboardShell({ data }: DashboardShellProps) {
                   <AllocationChart portfolio={data.portfolio} />
                 </div>
               </div>
+
+              {/* Performance Analysis Chart */}
+              <section className="animate-in slide-in-from-bottom-4 duration-1000">
+                <PortfolioPerformanceChart data={performanceData} />
+              </section>
 
               {/* History Chart */}
               <section className="bg-gradient-to-br from-card to-muted border border-border rounded-2xl p-2 shadow-xl">
