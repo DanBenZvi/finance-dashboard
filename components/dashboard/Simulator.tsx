@@ -724,17 +724,29 @@ export function Simulator() {
                   </div>
                 </div>
 
-                <div className="p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/10 flex items-start gap-3">
-                  <div className="p-2 bg-emerald-500/10 rounded-lg">
-                    <TrendingUp className="h-4 w-4 text-emerald-400" />
+                {metrics && (
+                  <div className="p-4 bg-indigo-500/5 rounded-xl border border-indigo-500/10 flex items-start gap-3">
+                    <div className="p-2 bg-indigo-500/10 rounded-lg">
+                      <TrendingUp className="h-4 w-4 text-indigo-400" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Simulation Insight</h4>
+                      <p className="text-[9px] text-muted-foreground font-medium leading-relaxed">
+                        {metrics.totalPlPercent >= 0
+                          ? `Simulated portfolio is up ${metrics.totalPlPercent.toFixed(1)}% from entry. `
+                          : `Simulated portfolio is down ${Math.abs(metrics.totalPlPercent).toFixed(1)}% from entry. `}
+                        {metrics.maxDD > 0.2
+                          ? `Max drawdown of ${(metrics.maxDD * 100).toFixed(1)}% is significant — consider position sizing.`
+                          : metrics.maxDD > 0.1
+                          ? `Max drawdown of ${(metrics.maxDD * 100).toFixed(1)}% is moderate.`
+                          : `Max drawdown of ${(metrics.maxDD * 100).toFixed(1)}% is well-controlled.`}
+                        {metrics.rangePortfolioReturn > metrics.rangeBenchmarkReturn
+                          ? ` Outperforming ${benchmarkTicker} by ${(metrics.rangePortfolioReturn - metrics.rangeBenchmarkReturn).toFixed(1)}%.`
+                          : ` Underperforming ${benchmarkTicker} by ${(metrics.rangeBenchmarkReturn - metrics.rangePortfolioReturn).toFixed(1)}%.`}
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">AI Insight</h4>
-                    <p className="text-[9px] text-muted-foreground font-medium leading-relaxed">
-                      Your portfolio shows high correlation with Tech sectors. Consider diversification into Utilities or Consumer Staples to lower volatility.
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

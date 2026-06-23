@@ -3,8 +3,8 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
-  title: "Financial Dashboard [VERIFIED]",
-  description: "Personal Financial Portfolio Tracker",
+  title: "Financial OS",
+  description: "Personal Financial Portfolio Intelligence",
 };
 
 export default function RootLayout({

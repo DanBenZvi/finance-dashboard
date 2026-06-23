@@ -17,54 +17,156 @@
   }
 
   .dark {
-    --background: #020617;
-    --foreground: #f8fafc;
-    --card: #0f172a;
-    --card-foreground: #f8fafc;
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8;
-    --border: #1e293b;
-    --input: #1e293b;
+    --background: #000000;
+    --foreground: #e2e8f0;
+    --card: #07080f;
+    --card-foreground: #e2e8f0;
+    --muted: #0f1119;
+    --muted-foreground: #64748b;
+    --border: #1a1f2e;
+    --input: #1a1f2e;
     --primary: #6366f1;
     --primary-foreground: #ffffff;
   }
 }
 
+/* ── Base ─────────────────────────────────────────────────────── */
+html { scroll-behavior: smooth; }
+
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Custom scrollbar for a premium feel */
-::-webkit-scrollbar {
-  width: 6px;
+/* Dark mode atmospheric layers */
+.dark body {
+  background-color: #000000;
+  /* Subtle grid */
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+/* Vignette overlay (pointer-events: none so it never blocks clicks) */
+.dark body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%,   rgba(99,102,241,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 100% 100% at 50% 100%, rgba(0,0,0,0.8) 0%, transparent 60%),
+    radial-gradient(ellipse 100% 100% at 0% 50%,   rgba(0,0,0,0.5) 0%, transparent 50%),
+    radial-gradient(ellipse 100% 100% at 100% 50%, rgba(0,0,0,0.5) 0%, transparent 50%);
 }
 
-::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 10px;
+/* Scanline texture for CRT/holographic feel */
+.dark body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.06) 2px,
+    rgba(0, 0, 0, 0.06) 4px
+  );
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+/* ── Scrollbars ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #334155; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Glassmorphism ────────────────────────────────────────────── */
+.glass {
+  background: rgba(7, 8, 15, 0.7);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(99, 102, 241, 0.12);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+/* ── 3D card tilt on hover ────────────────────────────────────── */
+.card-3d {
+  transform-style: preserve-3d;
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.4s ease;
+  will-change: transform;
+}
+.card-3d:hover {
+  transform: perspective(800px) rotateX(-2deg) rotateY(1.5deg) translateY(-3px);
+  box-shadow: 0 20px 60px rgba(99, 102, 241, 0.15), 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
-/* Hide scrollbar for Chrome, Safari and Opera */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+/* ── Gradient text ────────────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #a5b4fc 0%, #6366f1 40%, #c084fc 80%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.4));
 }
 
-/* Hide scrollbar for IE, Edge and Firefox */
-.no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+/* ── Glow utilities ───────────────────────────────────────────── */
+.glow-indigo {
+  box-shadow:
+    0 0 15px rgba(99, 102, 241, 0.2),
+    0 0 50px rgba(99, 102, 241, 0.08),
+    inset 0 1px 0 rgba(99, 102, 241, 0.1);
 }
+.glow-emerald {
+  box-shadow:
+    0 0 15px rgba(16, 185, 129, 0.2),
+    0 0 50px rgba(16, 185, 129, 0.08);
+}
+.glow-rose {
+  box-shadow:
+    0 0 15px rgba(239, 68, 68, 0.2),
+    0 0 50px rgba(239, 68, 68, 0.08);
+}
+
+/* ── Aurora gradient background ───────────────────────────────── */
+@keyframes aurora {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+.aurora {
+  background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.06), rgba(6,182,212,0.05), rgba(99,102,241,0.08));
+  background-size: 300% 300%;
+  animation: aurora 12s ease infinite;
+}
+
+/* ── Animations ───────────────────────────────────────────────── */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 6px rgba(99, 102, 241, 0.3); }
+  50%       { box-shadow: 0 0 20px rgba(99, 102, 241, 0.7), 0 0 40px rgba(99, 102, 241, 0.2); }
+}
+.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.shimmer {
+  background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.06) 50%, transparent 75%);
+  background-size: 200% auto;
+  animation: shimmer 2.5s linear infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0);    }
+  50%       { transform: translateY(-6px); }
+}
+.animate-float { animation: float 4s ease-in-out infinite; }
+
+/* ── Selection colour ─────────────────────────────────────────── */
+::selection { background: rgba(99, 102, 241, 0.3); }

@@ -81,7 +81,7 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
       </div>
 
       {/* Assets Data Table - Refined Design */}
-      <div className="bg-card/50 border border-border rounded-2xl shadow-xl overflow-hidden backdrop-blur-sm">
+      <div className="bg-card/60 border border-border rounded-2xl shadow-xl overflow-hidden backdrop-blur-xl">
         <div className="px-4 py-4 sm:px-8 sm:py-6 border-b border-border flex items-center justify-between bg-card/80">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="bg-indigo-500/10 p-1.5 sm:p-2 rounded-lg">
@@ -187,7 +187,7 @@ function MetricCard({ title, value, description, icon, trend }: {
   trend?: 'up' | 'down';
 }) {
   return (
-    <div className="bg-card border border-border rounded-2xl p-4 sm:p-7 shadow-lg relative overflow-hidden group hover:border-indigo-500/50 transition-all">
+    <div className="card-3d bg-card/70 backdrop-blur-xl border border-border rounded-2xl p-4 sm:p-7 shadow-lg relative overflow-hidden group hover:border-indigo-500/40 transition-all duration-300">
       <div className={`absolute top-0 left-0 w-full h-1 ${
         trend === 'up' ? 'bg-emerald-500' : trend === 'down' ? 'bg-rose-500' : 'bg-indigo-500'
       }`} />
