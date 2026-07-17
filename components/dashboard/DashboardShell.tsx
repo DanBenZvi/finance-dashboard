@@ -86,7 +86,7 @@ export function DashboardShell({ data }: DashboardShellProps) {
                 {/* Stats + Donut */}
                 <div className="grid gap-6 lg:gap-8 lg:grid-cols-4 items-start">
                   <div className="lg:col-span-3">
-                    <PortfolioOverview portfolio={data.portfolio} />
+                    <PortfolioOverview portfolio={data.portfolio} usdIlsRate={data.indicators.usdIls} />
                   </div>
                   <div className="lg:col-span-1 lg:sticky lg:top-8 h-fit">
                     <AllocationChart portfolio={data.portfolio} />

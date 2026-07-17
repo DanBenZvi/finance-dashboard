@@ -5,14 +5,16 @@ import { TrendingUp, TrendingDown, DollarSign, PieChart, ArrowUpRight, ArrowDown
 
 interface PortfolioOverviewProps {
   portfolio: PortfolioItem[];
+  usdIlsRate: number;
 }
 
 type SortField = 'ticker' | 'quantity' | 'aumUsd' | 'dailyChangeUsd' | 'dailyChangePercent';
 type SortDirection = 'asc' | 'desc';
 
-export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
+export function PortfolioOverview({ portfolio, usdIlsRate }: PortfolioOverviewProps) {
   const [sortField, setSortField] = useState<SortField>('aumUsd');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [aumCurrency, setAumCurrency] = useState<'USD' | 'ILS'>('USD');
 
   const handleSort = (field: SortField) => {
     if (field === sortField) {
@@ -42,7 +44,9 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
 
   // Aggregate data only from the stock list (already filtered by range in fetchAllData)
   const totalAumUsd = portfolio.reduce((sum, item) => sum + item.aumUsd, 0);
+  const totalAumIls = portfolio.reduce((sum, item) => sum + item.aumIls, 0);
   const totalDailyChangeUsd = portfolio.reduce((sum, item) => sum + item.dailyChangeUsd, 0);
+  const totalDailyChangeIls = totalDailyChangeUsd * usdIlsRate;
   
   // Weighted daily change percentage: (Change / (Current - Change)) * 100
   const totalDailyChangePercent = totalAumUsd > totalDailyChangeUsd 
@@ -60,13 +64,18 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
       <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-3">
         <MetricCard
           title="Total Portfolio AUM"
-          value={formatCurrency(totalAumUsd)}
-          description="Consolidated assets in USD"
-          icon={<DollarSign className="h-6 w-6 text-indigo-400" />}
+          value={formatCurrency(aumCurrency === 'USD' ? totalAumUsd : totalAumIls, aumCurrency)}
+          description={`Consolidated assets in ${aumCurrency === 'USD' ? 'USD' : 'ILS'}`}
+          icon={
+            aumCurrency === 'USD'
+              ? <DollarSign className="h-6 w-6 text-indigo-400" />
+              : <span className="h-6 w-6 flex items-center justify-center text-lg font-black text-indigo-400">₪</span>
+          }
+          onIconClick={() => setAumCurrency((prev) => (prev === 'USD' ? 'ILS' : 'USD'))}
         />
         <MetricCard
-          title="Daily Change ($)"
-          value={formatCurrency(totalDailyChangeUsd)}
+          title={`Daily Change (${aumCurrency === 'USD' ? '$' : 'ILS'})`}
+          value={formatCurrency(aumCurrency === 'USD' ? totalDailyChangeUsd : totalDailyChangeIls, aumCurrency)}
           description="Total profit/loss today"
           icon={totalDailyChangeUsd >= 0 ? <TrendingUp className="h-6 w-6 text-emerald-400" /> : <TrendingDown className="h-6 w-6 text-rose-400" />}
           trend={totalDailyChangeUsd >= 0 ? 'up' : 'down'}
@@ -179,12 +188,13 @@ export function PortfolioOverview({ portfolio }: PortfolioOverviewProps) {
   );
 }
 
-function MetricCard({ title, value, description, icon, trend }: { 
-  title: string; 
-  value: string; 
+function MetricCard({ title, value, description, icon, trend, onIconClick }: {
+  title: string;
+  value: string;
   description: string;
   icon: React.ReactNode;
   trend?: 'up' | 'down';
+  onIconClick?: () => void;
 }) {
   return (
     <div className="card-3d bg-card/70 backdrop-blur-xl border border-border rounded-2xl p-4 sm:p-7 shadow-lg relative overflow-hidden group hover:border-indigo-500/40 transition-all duration-300">
@@ -203,9 +213,20 @@ function MetricCard({ title, value, description, icon, trend }: {
             </h2>
           </div>
         </div>
-        <div className="bg-muted p-2 sm:p-3 rounded-xl border border-border group-hover:scale-110 transition-transform">
-          {React.cloneElement(icon as React.ReactElement, { className: "h-5 w-5 sm:h-6 sm:w-6" })}
-        </div>
+        {onIconClick ? (
+          <button
+            type="button"
+            onClick={onIconClick}
+            title="Toggle currency"
+            className="bg-muted p-2 sm:p-3 rounded-xl border border-border group-hover:scale-110 transition-transform hover:border-indigo-500/60 cursor-pointer"
+          >
+            {React.cloneElement(icon as React.ReactElement, { className: "h-5 w-5 sm:h-6 sm:w-6" })}
+          </button>
+        ) : (
+          <div className="bg-muted p-2 sm:p-3 rounded-xl border border-border group-hover:scale-110 transition-transform">
+            {React.cloneElement(icon as React.ReactElement, { className: "h-5 w-5 sm:h-6 sm:w-6" })}
+          </div>
+        )}
       </div>
       
       <p className="text-[10px] sm:text-xs font-medium text-muted-foreground">{description}</p>
